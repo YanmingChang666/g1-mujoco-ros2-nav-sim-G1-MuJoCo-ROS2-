@@ -24,10 +24,12 @@ def generate_launch_description():
     start_mujoco = LaunchConfiguration("start_mujoco")
     start_g1_ctrl = LaunchConfiguration("start_g1_ctrl")
     start_nav_bridge = LaunchConfiguration("start_nav_bridge")
+    start_camera_bridge = LaunchConfiguration("start_camera_bridge")
     publish_robot_odom = LaunchConfiguration("publish_robot_odom")
     publish_sensor_tf_static = LaunchConfiguration("publish_sensor_tf_static")
     mujoco_terminal = LaunchConfiguration("mujoco_terminal")
     g1_ctrl_terminal = LaunchConfiguration("g1_ctrl_terminal")
+    camera_model_path = LaunchConfiguration("camera_model_path")
 
     cyclone_uri = f"file://{MUJUCO_SIM_ROOT}/config/cyclonedds_lo.xml"
 
@@ -61,10 +63,17 @@ def generate_launch_description():
             DeclareLaunchArgument("start_mujoco", default_value="true"),
             DeclareLaunchArgument("start_g1_ctrl", default_value="true"),
             DeclareLaunchArgument("start_nav_bridge", default_value="true"),
+            DeclareLaunchArgument("start_camera_bridge", default_value="false"),
             DeclareLaunchArgument("publish_robot_odom", default_value="true"),
             DeclareLaunchArgument("publish_sensor_tf_static", default_value="false"),
             DeclareLaunchArgument("mujoco_terminal", default_value="false"),
             DeclareLaunchArgument("g1_ctrl_terminal", default_value="true"),
+            DeclareLaunchArgument(
+                "camera_model_path",
+                default_value=os.path.join(
+                    MUJOCO_ROOT, "unitree_robots", "g1", "vln_apartment_29dof.xml"
+                ),
+            ),
             SetEnvironmentVariable("ROS_DOMAIN_ID", domain),
             SetEnvironmentVariable("RMW_IMPLEMENTATION", "rmw_cyclonedds_cpp"),
             SetEnvironmentVariable("CYCLONEDDS_URI", cyclone_uri),
@@ -201,6 +210,22 @@ def generate_launch_description():
                     {"publish_sensor_tf_static": publish_sensor_tf_static},
                 ],
                 condition=IfCondition(start_nav_bridge),
+            ),
+            Node(
+                package="mujuco_sim",
+                executable="mujoco_camera_bridge",
+                name="mujoco_camera_bridge",
+                output="screen",
+                parameters=[
+                    {"model_path": camera_model_path},
+                    {"camera_name": "head_camera"},
+                    {"width": 640},
+                    {"height": 480},
+                    {"fps": 30.0},
+                    {"camera_xyz": "0.10,0.0,0.34"},
+                    {"horizontal_fov_deg": 69.4},
+                ],
+                condition=IfCondition(start_camera_bridge),
             ),
         ]
     )

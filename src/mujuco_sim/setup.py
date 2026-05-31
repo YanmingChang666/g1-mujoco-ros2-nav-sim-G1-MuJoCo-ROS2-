@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "unitree_mujoco_shm_bridge = mujuco_sim.unitree_mujoco_shm_bridge:main",
+            "mujoco_camera_bridge = mujuco_sim.mujoco_camera_bridge:main",
             "fastlio_tf_bridge = mujuco_sim.fastlio_tf_bridge:main",
         ],
     },
