@@ -321,7 +321,6 @@ bool ShmNavBridge::LoadMid360Pattern()
   const char *paths[] = {
       "../config/mid360_pattern.csv",
       "config/mid360_pattern.csv",
-      "/home/xkh/yushu_ws/src/unitree_mujoco/simulate/config/mid360_pattern.csv",
   };
 
   std::ifstream file;

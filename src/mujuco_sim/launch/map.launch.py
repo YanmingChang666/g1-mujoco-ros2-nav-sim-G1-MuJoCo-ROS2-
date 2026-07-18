@@ -16,7 +16,12 @@ REAL_FAST_LIO_CONFIG_FILE = "mid360_real.yaml"
 MAP_DELAY_SECONDS = "8.0"
 SIM_DOMAIN_ID = "1"
 REAL_DOMAIN_ID = "0"
-WS_SRC = os.path.expanduser("~/yushu_ws/src")
+# Workspace src dir, derived from this package's install prefix
+# (<ws>/install/mujuco_sim -> <ws>/src). Override with G1_WS_SRC for
+# nonstandard layouts such as --merge-install.
+from ament_index_python.packages import get_package_prefix
+_WS_ROOT = os.path.dirname(os.path.dirname(get_package_prefix("mujuco_sim")))
+WS_SRC = os.environ.get("G1_WS_SRC", os.path.join(_WS_ROOT, "src"))
 SIM_CYCLONEDDS_URI = f"file://{WS_SRC}/mujuco_sim/config/cyclonedds_lo.xml"
 REAL_CYCLONEDDS_URI = ""  # Empty means: keep the shell/Unitree ROS2 network setup.
 

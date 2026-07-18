@@ -9,7 +9,12 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
-WS_SRC = os.path.expanduser("~/yushu_ws/src")
+# Workspace src dir, derived from this package's install prefix
+# (<ws>/install/mujuco_sim -> <ws>/src). Override with G1_WS_SRC for
+# nonstandard layouts such as --merge-install.
+from ament_index_python.packages import get_package_prefix
+_WS_ROOT = os.path.dirname(os.path.dirname(get_package_prefix("mujuco_sim")))
+WS_SRC = os.environ.get("G1_WS_SRC", os.path.join(_WS_ROOT, "src"))
 
 
 def generate_launch_description():

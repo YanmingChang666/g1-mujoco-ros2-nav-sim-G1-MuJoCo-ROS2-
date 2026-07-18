@@ -5,12 +5,25 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironment
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_prefix
 
 
-WS_SRC = os.path.expanduser("~/yushu_ws/src")
+# Workspace src dir, derived from this package's install prefix
+# (<ws>/install/mujuco_sim -> <ws>/src). Override with G1_WS_SRC for
+# nonstandard layouts such as --merge-install.
+_WS_ROOT = os.path.dirname(os.path.dirname(get_package_prefix("mujuco_sim")))
+WS_SRC = os.environ.get("G1_WS_SRC", os.path.join(_WS_ROOT, "src"))
 MUJOCO_ROOT = os.path.join(WS_SRC, "unitree_mujoco")
 MJLAB_ROOT = os.path.join(WS_SRC, "unitree_rl_mjlab")
 MUJUCO_SIM_ROOT = os.path.join(WS_SRC, "mujuco_sim")
+
+# The Unitree binaries must load the CycloneDDS libs they were linked against
+# (/opt/unitree_robotics/lib). A sourced ROS 2 environment puts its own
+# libddsc.so.0 on LD_LIBRARY_PATH, which outranks the binaries' RUNPATH and
+# crashes them at startup with "free(): invalid pointer".
+UNITREE_LD_LIBRARY_PATH = "/opt/unitree_robotics/lib:" + os.environ.get(
+    "LD_LIBRARY_PATH", ""
+)
 
 
 def generate_launch_description():
@@ -84,6 +97,7 @@ def generate_launch_description():
                     "ROS_DOMAIN_ID": domain,
                     "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
                     "CYCLONEDDS_URI": cyclone_uri,
+                    "LD_LIBRARY_PATH": UNITREE_LD_LIBRARY_PATH,
                 },
                 output="screen",
                 condition=IfCondition(
@@ -107,6 +121,7 @@ def generate_launch_description():
                             "; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
                             "; export CYCLONEDDS_URI=",
                             cyclone_uri,
+                            "; export LD_LIBRARY_PATH=/opt/unitree_robotics/lib:$LD_LIBRARY_PATH"
                             "; cd ",
                             unitree_mujoco_cwd,
                             " && ",
@@ -149,6 +164,7 @@ def generate_launch_description():
                     "ROS_DOMAIN_ID": domain,
                     "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
                     "CYCLONEDDS_URI": cyclone_uri,
+                    "LD_LIBRARY_PATH": UNITREE_LD_LIBRARY_PATH,
                 },
                 output="screen",
                 condition=IfCondition(
@@ -172,6 +188,7 @@ def generate_launch_description():
                             "; export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
                             "; export CYCLONEDDS_URI=",
                             cyclone_uri,
+                            "; export LD_LIBRARY_PATH=/opt/unitree_robotics/lib:$LD_LIBRARY_PATH"
                             "; cd ",
                             g1_ctrl_cwd,
                             " && ",

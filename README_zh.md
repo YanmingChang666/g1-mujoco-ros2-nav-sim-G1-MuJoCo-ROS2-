@@ -148,6 +148,53 @@ failed to find shared library 'rmw_cyclonedds_cpp'
 
 Unitree MuJoCo、Unitree SDK2、Unitree RL MJLab 的基础环境配置请参考 Unitree 官方文档。本项目默认你已经能够单独运行 Unitree MuJoCo 和 G1 `g1_ctrl` 控制程序。完整编译和实机雷达相关功能还需要配置 Livox-SDK2、`livox_ros_driver2` 和 FAST-LIO。
 
+## 编译并安装 Unitree SDK2
+
+`unitree_mujoco/simulate` 和 `g1_ctrl` 都依赖 Unitree SDK2，并且默认它安装在 `/opt/unitree_robotics`。请从本工作空间编译安装，不要使用 Unitree 官方仓库 —— 本工作空间的副本包含 `g1_ctrl` 必需的 `dds_wrapper` 头文件（官方仓库没有）：
+
+```bash
+cd ~/{your_workspace}/src/unitree_sdk2
+mkdir -p build && cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics -DBUILD_EXAMPLES=OFF
+make -j4
+sudo make install
+```
+
+验证安装：
+
+```bash
+ls /opt/unitree_robotics/lib/cmake/unitree_sdk2/unitree_sdk2Config.cmake
+ls /opt/unitree_robotics/include/unitree/dds_wrapper/robots/g1/g1.h
+```
+
+如果跳过这一步，后续编译 `unitree_mujoco/simulate` 会报：
+
+```text
+Could not find a package configuration file provided by "unitree_sdk2"
+```
+
+编译 `g1_ctrl` 会报：
+
+```text
+Could not find unitree_sdk2 include directory
+```
+
+如果编译 SDK 时报：
+
+```text
+fatal error: unitree/common/log/log.hpp: No such file or directory
+```
+
+说明你的克隆缺少 `src/unitree_sdk2/include/unitree/common/log/` 目录。原因是早期 `.gitignore` 中的 `log/` 规则（本意是忽略 colcon 的输出目录）意外把这些头文件排除出了仓库，现已改为锚定写法 `/log/`。可以从官方 SDK 恢复这些头文件（各上游版本中该目录内容完全一致）：
+
+```bash
+git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2 /tmp/unitree_sdk2_official
+cp -r /tmp/unitree_sdk2_official/include/unitree/common/log \
+      ~/{your_workspace}/src/unitree_sdk2/include/unitree/common/log
+```
+
+该修复已在 Ubuntu 22.04 + GCC 11.4 上验证有效：恢复头文件后，SDK 可正常安装，`unitree_mujoco` 和 `g1_ctrl` 均可编译并运行。
+
 ## 编译 Unitree MuJoCo
 
 如果编译 `unitree_mujoco/simulate` 时提示找不到 MuJoCo、`glfw_adapter.h` 或 `-lmujoco`，说明 MuJoCo C/C++ SDK 没有安装或没有正确链接。
@@ -207,19 +254,55 @@ make -j4
 
 ## 编译 MJLab / G1 控制器
 
+先安装编译依赖：
+
+```bash
+sudo apt install libboost-program-options-dev libspdlog-dev libfmt-dev libeigen3-dev libyaml-cpp-dev zlib1g-dev
+```
+
 ```bash
 cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1
 mkdir -p build
 cd build
-cmake ..
+cmake .. -DCMAKE_PREFIX_PATH=/opt/unitree_robotics
 make -j4
 ```
+
+`-DCMAKE_PREFIX_PATH=/opt/unitree_robotics` 是必需的。直接执行 `cmake ..` 会报：
+
+```text
+Could not find unitree_sdk2 include directory
+```
+
+因为 `/opt/unitree_robotics` 不在 CMake 的默认搜索路径中。参见上文「编译并安装 Unitree SDK2」一节。
 
 运行键盘控制：
 
 ```bash
 ./g1_ctrl --network=lo --domain=1 --keyboard
 ```
+
+如果 `g1_ctrl` 在打印 CycloneDDS 网卡信息后立刻崩溃：
+
+```text
+free(): invalid pointer
+Aborted (core dumped)
+```
+
+说明进程加载了错误的 CycloneDDS 库。二进制的 RUNPATH 中记录了 `/opt/unitree_robotics/lib`，但 `LD_LIBRARY_PATH` 的优先级高于 RUNPATH —— 在 source 过 ROS 2 环境（或激活了 conda 环境）的终端里，会加载 ROS 自带的 `libddsc.so.0` 而不是 Unitree 的版本，导致 DDS 初始化时堆损坏。用以下命令检查：
+
+```bash
+ldd ./g1_ctrl | grep ddsc
+```
+
+`libddsc.so.0` 和 `libddscxx.so.0` 都必须解析到 `/opt/unitree_robotics/lib`。解决方法：在没有 source ROS 2 的终端里运行 `g1_ctrl`（它不依赖 ROS，直接通过 DDS 通信），或者显式指定库路径：
+
+```bash
+export LD_LIBRARY_PATH=/opt/unitree_robotics/lib:$LD_LIBRARY_PATH
+./g1_ctrl --network=lo --domain=1 --keyboard
+```
+
+该问题已在 Ubuntu 22.04 上验证：使用干净的库路径后，同一个二进制可正常启动并进入 `Waiting for connection to robot...`。`g1_nav_sim.launch.py` 已为 `unitree_mujoco` 和 `g1_ctrl` 进程自动前置 `/opt/unitree_robotics/lib`，因此在 source 过 ROS 2 的终端里使用 `ros2 launch` 是安全的。
 
 等待控制器检测到机器人后，在 MuJoCo 界面点击 reset，机器人进入 FixStand / Velocity 流程。在运行 `g1_ctrl` 的终端里使用键盘控制机器人走动：
 
@@ -254,7 +337,39 @@ find /usr/local -name "livox_lidar_api.h"
 ldconfig -p | grep livox
 ```
 
-再编译 `livox_ros_driver2`：
+再编译 `livox_ros_driver2`。Livox 上游把清单文件命名为 `package_ROS1.xml` / `package_ROS2.xml`，由其 `build.sh` 生成 `package.xml`；而 `src/livox_ros_driver2/` 里旧的 `.gitignore` 规则把生成的 `package.xml` 排除在了仓库之外。缺少该文件时 colcon 会报：
+
+```text
+CMake Error: File .../livox_ros_driver2/package.xml does not exist.
+...
+Packages installing interfaces must include
+'<member_of_group>rosidl_interface_packages</member_of_group>' in their package.xml
+```
+
+本仓库现在已直接提供 `package.xml`（内容即 `package_ROS2.xml`），并删除了对应的 `.gitignore` 规则。如果你的克隆早于该修复，请手动创建：
+
+```bash
+cd ~/{your_workspace}/src/livox_ros_driver2
+cp package_ROS2.xml package.xml
+```
+
+注意：不要用 Livox 的 `build.sh` 来解决这个问题 —— 它会对整个工作空间的 `build/` 和 `install/` 目录执行 `rm -rf`。
+
+ROS2 Humble 编译：
+
+```bash
+cd ~/{your_workspace}
+source /opt/ros/humble/setup.bash
+colcon build --packages-select livox_ros_driver2 \
+  --cmake-args \
+  -DROS_EDITION=ROS2 -DDISTRO_ROS=humble \
+  -DLIVOX_LIDAR_SDK_INCLUDE_DIR=/usr/local/include \
+  -DLIVOX_LIDAR_SDK_LIBRARY=/usr/local/lib/liblivox_lidar_sdk_shared.so
+```
+
+`-DDISTRO_ROS=humble` 很重要：在 Humble/Jazzy 上 `CMakeLists.txt` 必须走 `rosidl_get_typesupport_target` 分支；不加该参数会退回到只适用于 Foxy 时代发行版的旧 typesupport 链接方式。
+
+ROS2 Foxy 编译：
 
 ```bash
 cd ~/{your_workspace}
@@ -265,7 +380,7 @@ colcon build --packages-select livox_ros_driver2 \
   -DLIVOX_LIDAR_SDK_LIBRARY=/usr/local/lib/liblivox_lidar_sdk_shared.so
 ```
 
-如果 `livox_ros_driver2` 提示 `package.xml` 不存在，请确认使用的是本仓库版本，或者将 `package_ROS2.xml` 复制为 `package.xml`。本仓库推荐直接使用完整 workspace，避免 Livox ROS2 驱动版本和 ROS 发行版不匹配。
+本仓库推荐直接使用完整 workspace，避免 Livox ROS2 驱动版本和 ROS 发行版不匹配。
 
 ## FAST-LIO Foxy 兼容说明
 
@@ -334,21 +449,57 @@ colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 source install/setup.bash
 ```
 
-注意：本仓库 launch 文件中有工作空间路径配置。请根据自己的工作空间名称修改下面三个文件中的 `WS_SRC`：
+在 ROS2 Humble 上，请加上 Livox 相关参数，使 `livox_ros_driver2` 走正确的 typesupport 分支：
 
-```text
-src/mujuco_sim/launch/g1_nav_sim.launch.py
-src/mujuco_sim/launch/map.launch.py
-src/mujuco_sim/launch/nav.launch.py
+```bash
+colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 -DROS_EDITION=ROS2 -DDISTRO_ROS=humble
 ```
 
-例如你的工作空间叫 `g1_ws`：
+工作空间里有一些包与仿真流程无关，并且在普通 ROS2 环境下无法编译。这些目录现在都带有 `COLCON_IGNORE` 标记，因此上面这一条 `colcon build` 命令即可一键完成编译：
 
-```python
-WS_SRC = os.path.expanduser("~/g1_ws/src")
+- `src/unitree_ros2/`（`unitree_api`、`unitree_go`、`unitree_hg`、`unitree_ros2_example`）：仅用于实机 ROS2 通信。报错 `Could not find ... "rosidl_generator_dds_idl"`，因为该生成器来自 Unitree 的 `cyclonedds_ws` 配置，标准 ROS2 中没有。
+- `src/lidar_localization_ros2/`：实验性 NDT 定位，所有 launch 文件都没有用到。报错 `Could not find ... "ndt_omp_ros2"`，这是一个只能从源码克隆到 `src/` 的包。
+- `src/unitree_sdk2/` 和 `src/Livox-SDK2/`：前面步骤中已手动安装到系统，在 colcon 里重复编译没有意义。
+- `src/unitree_rl_mjlab/`：RL 训练仓库；部署用的 `g1_ctrl` 是单独用 CMake 编译的。
+
+以后如果需要重新启用某个包（例如配置实机时先编译 Unitree 的 `cyclonedds_ws` 再启用 `src/unitree_ros2`，或克隆 `ndt_omp_ros2` 后启用 `lidar_localization_ros2`），删除对应目录下的 `COLCON_IGNORE` 文件即可。如果你的克隆早于这些标记文件，请手动创建：
+
+```bash
+cd ~/{your_workspace}
+touch src/unitree_ros2/COLCON_IGNORE src/unitree_sdk2/COLCON_IGNORE \
+      src/Livox-SDK2/COLCON_IGNORE src/unitree_rl_mjlab/COLCON_IGNORE \
+      src/lidar_localization_ros2/COLCON_IGNORE
 ```
 
-修改 launch 文件后，需要重新编译并 source：
+其余包的系统（apt）依赖可以用 rosdep 自动安装，不必逐个排查：
+
+```bash
+sudo rosdep init   # 仅第一次需要
+rosdep update
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+注意 rosdep 的能力边界：它只安装 `package.xml` 中声明的二进制 apt 依赖（PCL、Nav2、tf2 等），无法提供厂商 SDK（Unitree SDK2、Livox-SDK2）、纯源码包（`ndt_omp_ros2`、`rosidl_generator_dds_idl`），也无法修复仓库本身的问题 —— 这些正是上文各节所解决的内容。`-r` 参数让它跳过无法解析的依赖继续执行。
+
+对本工作空间来说 rosdep 是可选的：「环境要求」一节的 apt 安装列表已经覆盖了仿真流程所需的依赖。如果 `rosdep init` / `update` 超时（它从 `raw.githubusercontent.com` 下载数据，国内网络经常无法访问），可以直接跳过 rosdep，或者改用清华 TUNA 镜像：
+
+```bash
+sudo mkdir -p /etc/ros/rosdep/sources.list.d
+sudo curl -o /etc/ros/rosdep/sources.list.d/20-default.list \
+  https://mirrors.tuna.tsinghua.edu.cn/github-raw/ros/rosdistro/master/rosdep/sources.list.d/20-default.list
+export ROSDISTRO_INDEX_URL=https://mirrors.tuna.tsinghua.edu.cn/rosdistro/index-v4.yaml
+rosdep update
+```
+
+建议把 `export ROSDISTRO_INDEX_URL=...` 写进 `~/.bashrc`，以后执行 `rosdep update` 也会走镜像。
+
+launch 文件已不再硬编码工作空间路径：`WS_SRC` 会根据 `mujuco_sim` 的安装前缀自动推导（`<ws>/install/mujuco_sim` → `<ws>/src`），因此工作空间可以放在任意目录、使用任意名称。只有在非标准布局下（例如 `--merge-install`）才需要显式指定：
+
+```bash
+export G1_WS_SRC=~/{your_workspace}/src
+```
+
+如果修改了 launch 文件，需要重新编译并 source：
 
 ```bash
 cd ~/{your_workspace}
@@ -362,7 +513,7 @@ source install/setup.bash
 src/unitree_mujoco/example/COLCON_IGNORE
 ```
 
-如果 launch 启动后仍然搜索旧工作空间，例如日志中出现 `~/yushu_ws/install`，说明 shell 环境被旧 workspace 污染。建议新开终端并执行：
+如果 launch 启动后仍然搜索旧工作空间（例如日志中出现某个过期的 `.../old_ws/install` 路径），说明 shell 环境被旧 workspace 污染。建议新开终端并执行：
 
 ```bash
 unset AMENT_PREFIX_PATH
