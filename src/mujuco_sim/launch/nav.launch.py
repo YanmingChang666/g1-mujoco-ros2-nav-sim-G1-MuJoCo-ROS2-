@@ -41,7 +41,7 @@ def generate_launch_description():
         [package_share, "config", "g1_nav2_params.yaml"]
     )
     default_rviz_config = PathJoinSubstitution(
-        [package_share, "rviz", "map.rviz"]
+        [package_share, "rviz", "nav.rviz"]
     )
 
     cyclone_uri = f"file://{WS_SRC}/mujuco_sim/config/cyclonedds_lo.xml"
@@ -98,6 +98,10 @@ def generate_launch_description():
                         executable="fastlio_tf_bridge",
                         name="fastlio_tf_bridge",
                         output="screen",
+                        # AMCL owns map->odom below and corrects FAST-LIO
+                        # drift against the static map; the bridge only
+                        # provides odom->base_link.
+                        parameters=[{"publish_map_to_odom": False}],
                     ),
                 ],
             ),
@@ -113,6 +117,14 @@ def generate_launch_description():
                         remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
                     ),
                     Node(
+                        package="nav2_amcl",
+                        executable="amcl",
+                        name="amcl",
+                        output="screen",
+                        parameters=[params_file],
+                        remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
+                    ),
+                    Node(
                         package="nav2_lifecycle_manager",
                         executable="lifecycle_manager",
                         name="lifecycle_manager_localization",
@@ -120,7 +132,7 @@ def generate_launch_description():
                         parameters=[
                             {"use_sim_time": False},
                             {"autostart": True},
-                            {"node_names": ["map_server"]},
+                            {"node_names": ["map_server", "amcl"]},
                         ],
                     ),
                     IncludeLaunchDescription(

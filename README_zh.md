@@ -153,7 +153,7 @@ Unitree MuJoCo、Unitree SDK2、Unitree RL MJLab 的基础环境配置请参考 
 `unitree_mujoco/simulate` 和 `g1_ctrl` 都依赖 Unitree SDK2，并且默认它安装在 `/opt/unitree_robotics`。请从本工作空间编译安装，不要使用 Unitree 官方仓库 —— 本工作空间的副本包含 `g1_ctrl` 必需的 `dds_wrapper` 头文件（官方仓库没有）：
 
 ```bash
-cd ~/{your_workspace}/src/unitree_sdk2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_sdk2
 mkdir -p build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics -DBUILD_EXAMPLES=OFF
 make -j4
@@ -190,7 +190,7 @@ fatal error: unitree/common/log/log.hpp: No such file or directory
 ```bash
 git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2 /tmp/unitree_sdk2_official
 cp -r /tmp/unitree_sdk2_official/include/unitree/common/log \
-      ~/{your_workspace}/src/unitree_sdk2/include/unitree/common/log
+      ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_sdk2/include/unitree/common/log
 ```
 
 该修复已在 Ubuntu 22.04 + GCC 11.4 上验证有效：恢复头文件后，SDK 可正常安装，`unitree_mujoco` 和 `g1_ctrl` 均可编译并运行。
@@ -234,7 +234,7 @@ link_libraries(
 然后重新编译：
 
 ```bash
-cd ~/{your_workspace}/src/unitree_mujoco/simulate
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_mujoco/simulate
 rm -rf build
 mkdir build
 cd build
@@ -261,7 +261,7 @@ sudo apt install libboost-program-options-dev libspdlog-dev libfmt-dev libeigen3
 ```
 
 ```bash
-cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_rl_mjlab/deploy/robots/g1
 mkdir -p build
 cd build
 cmake .. -DCMAKE_PREFIX_PATH=/opt/unitree_robotics
@@ -321,7 +321,7 @@ q/e: yaw 方向
 以 ROS2 Foxy 为例，先编译并安装 Livox-SDK2：
 
 ```bash
-cd ~/{your_workspace}/src/Livox-SDK2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/Livox-SDK2
 mkdir -p build
 cd build
 cmake ..
@@ -349,7 +349,7 @@ Packages installing interfaces must include
 本仓库现在已直接提供 `package.xml`（内容即 `package_ROS2.xml`），并删除了对应的 `.gitignore` 规则。如果你的克隆早于该修复，请手动创建：
 
 ```bash
-cd ~/{your_workspace}/src/livox_ros_driver2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/livox_ros_driver2
 cp package_ROS2.xml package.xml
 ```
 
@@ -358,7 +358,7 @@ cp package_ROS2.xml package.xml
 ROS2 Humble 编译：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/humble/setup.bash
 colcon build --packages-select livox_ros_driver2 \
   --cmake-args \
@@ -372,7 +372,7 @@ colcon build --packages-select livox_ros_driver2 \
 ROS2 Foxy 编译：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/foxy/setup.bash
 colcon build --packages-select livox_ros_driver2 \
   --cmake-args \
@@ -428,7 +428,7 @@ void map_save_callback(
 单独编译 FAST-LIO：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 colcon build --packages-select fast_lio
 source install/setup.bash
@@ -442,7 +442,7 @@ ros2 pkg prefix fast_lio
 新电脑第一次拿到这个 workspace，或者拷贝整个工作空间后，建议先清空旧的编译产物再编译：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 rm -rf build install log
 source /opt/ros/{your_ros_distro}/setup.bash
 colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
@@ -461,14 +461,15 @@ colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 -DROS_EDITION=RO
 - `src/lidar_localization_ros2/`：实验性 NDT 定位，所有 launch 文件都没有用到。报错 `Could not find ... "ndt_omp_ros2"`，这是一个只能从源码克隆到 `src/` 的包。
 - `src/unitree_sdk2/` 和 `src/Livox-SDK2/`：前面步骤中已手动安装到系统，在 colcon 里重复编译没有意义。
 - `src/unitree_rl_mjlab/`：RL 训练仓库；部署用的 `g1_ctrl` 是单独用 CMake 编译的。
+- `src/unitree_mujoco/`：仿真器需要手动用 CMake 编译（见上文「编译 Unitree MuJoCo」），launch 使用的是 `simulate/build/` 下的产物。colcon 编译它时缺少 MuJoCo SDK 参数，会报 `glfw_adapter.h: No such file` / `cannot find -lmujoco`。
 
 以后如果需要重新启用某个包（例如配置实机时先编译 Unitree 的 `cyclonedds_ws` 再启用 `src/unitree_ros2`，或克隆 `ndt_omp_ros2` 后启用 `lidar_localization_ros2`），删除对应目录下的 `COLCON_IGNORE` 文件即可。如果你的克隆早于这些标记文件，请手动创建：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 touch src/unitree_ros2/COLCON_IGNORE src/unitree_sdk2/COLCON_IGNORE \
       src/Livox-SDK2/COLCON_IGNORE src/unitree_rl_mjlab/COLCON_IGNORE \
-      src/lidar_localization_ros2/COLCON_IGNORE
+      src/lidar_localization_ros2/COLCON_IGNORE src/unitree_mujoco/COLCON_IGNORE
 ```
 
 其余包的系统（apt）依赖可以用 rosdep 自动安装，不必逐个排查：
@@ -496,13 +497,13 @@ rosdep update
 launch 文件已不再硬编码工作空间路径：`WS_SRC` 会根据 `mujuco_sim` 的安装前缀自动推导（`<ws>/install/mujuco_sim` → `<ws>/src`），因此工作空间可以放在任意目录、使用任意名称。只有在非标准布局下（例如 `--merge-install`）才需要显式指定：
 
 ```bash
-export G1_WS_SRC=~/{your_workspace}/src
+export G1_WS_SRC=~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src
 ```
 
 如果修改了 launch 文件，需要重新编译并 source：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 colcon build --packages-select mujuco_sim
 source install/setup.bash
 ```
@@ -520,7 +521,7 @@ unset AMENT_PREFIX_PATH
 unset CMAKE_PREFIX_PATH
 unset COLCON_PREFIX_PATH
 source /opt/ros/{your_ros_distro}/setup.bash
-source ~/{your_workspace}/install/setup.bash
+source ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/install/setup.bash
 ```
 
 同时检查 `~/.bashrc`，不要自动 source 旧工作空间。
@@ -530,7 +531,7 @@ source ~/{your_workspace}/install/setup.bash
 键盘控制模式：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim g1_nav_sim.launch.py input:=keyboard
@@ -561,20 +562,41 @@ MODE = "sim"
 USE_SLAM_TOOLBOX_2D = True
 ```
 
+修改该参数后需要重新编译 `mujuco_sim`，安装目录里的 launch 文件副本才会更新（如果编译时用了 `--symlink-install` 则不需要）：
+
+```bash
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
+colcon build --packages-select mujuco_sim
+source install/setup.bash
+```
+
 启动建图：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim map.launch.py
 ```
 
-用键盘控制机器人走动建图，然后保存 2D 地图：
+用键盘控制机器人走动建图，等 RViz 中的地图覆盖整个环境后再保存 2D 地图。
+
+**注意：**`map.launch.py` 会把整个仿真放到一个独立的 DDS 网络上（`ROS_DOMAIN_ID=1`，CycloneDDS 且仅使用 loopback 回环网卡）。新开的终端默认在另一个网络上（domain 0，Fast DDS），看不到 `/map` 话题，此时 `map_saver_cli` 会报错 `Failed to spin map subscription`。所以保存前必须先在该终端里设置相同的环境变量：
 
 ```bash
-ros2 run nav2_map_server map_saver_cli -f ~/{your_workspace}/src/maps/new_2d_map
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI=file://$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/mujuco_sim/config/cyclonedds_lo.xml
 ```
+
+先确认能看到地图话题，再执行保存：
+
+```bash
+ros2 topic list | grep map   # 应该能看到 /map
+ros2 run nav2_map_server map_saver_cli -f ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/maps/new_2d_map
+```
+
+保存后会生成 `new_2d_map.pgm` 和 `new_2d_map.yaml`；同名旧文件会被覆盖。
 
 ## 使用 FAST-LIO 保存 PCD 地图
 
@@ -585,10 +607,12 @@ MODE = "sim"
 USE_SLAM_TOOLBOX_2D = False
 ```
 
+修改该参数后同样需要重新编译 `mujuco_sim`，方法见上面 2D 建图小节。
+
 启动 FAST-LIO 建图：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim map.launch.py
@@ -599,6 +623,8 @@ ros2 launch mujuco_sim map.launch.py
 ```bash
 ros2 service call /map_save std_srvs/srv/Trigger {}
 ```
+
+和 2D 建图小节里的 `map_saver_cli` 一样，这个服务调用也必须在加入了仿真 DDS 网络的终端里执行——先设置相同的三个环境变量（`ROS_DOMAIN_ID`、`RMW_IMPLEMENTATION`、`CYCLONEDDS_URI`），否则看不到该服务。
 
 仿真 FAST-LIO 的 PCD 输出路径在下面文件里配置：
 
@@ -627,13 +653,27 @@ src/maps/vln_navigation_room.yaml
 启动导航：
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim nav.launch.py
 ```
 
+如果想使用其他地图，不需要改 launch 文件，直接传参数即可：
+
+```bash
+ros2 launch mujuco_sim nav.launch.py map:=$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/maps/new_2d_map.yaml
+```
+
 在 RViz 中发送 `2D Goal Pose`。Nav2 会发布 `/cmd_vel`，`g1_ctrl --cmd_vel` 接收后驱动 MuJoCo 中的 G1 行走。
+
+定位工作原理：
+
+- FAST-LIO 将 Mid360 点云与 IMU（`/imu/data`）紧耦合，提供高频局部里程计（`odom -> base_link`）。
+- AMCL 用 `/scan` 与静态地图做匹配，持续修正 `map -> odom`，因此 FAST-LIO 的漂移不会在 map 坐标系中累积。
+- RViz（`nav.rviz`）会显示全局路径（绿色）、DWB 局部路径（橙色）、全局/局部代价地图和 AMCL 粒子云。
+
+如果机器人在地图上的位置明显不对，可以用 RViz 的 `2D Pose Estimate` 工具重新给 AMCL 设定初始位姿。
 
 Nav2 联合仿真效果示例：
 
@@ -652,7 +692,7 @@ Nav2 联合仿真效果示例：
 5. 在真实机器人网络接口上运行 `g1_ctrl`，例如：
 
 ```bash
-cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1/build
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_rl_mjlab/deploy/robots/g1/build
 ./g1_ctrl --network=enp5s0
 ```
 
@@ -672,7 +712,17 @@ cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1/build
 src/mujuco_sim/config/cyclonedds_lo.xml
 ```
 
-本仓库的 launch 文件会自动设置这些环境变量。如果提示找不到 `rmw_cyclonedds_cpp`，请安装对应 ROS 版本的包，例如：
+本仓库的 launch 文件会自动设置这些环境变量，但只对它启动的节点生效。任何手动打开、需要和仿真交互的终端（`ros2 topic`、`ros2 service`、`map_saver_cli` 等）都必须先设置相同的环境变量，否则该终端处于默认 DDS 网络（domain 0，Fast DDS），看不到任何仿真话题：
+
+```bash
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI=file://$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/mujuco_sim/config/cyclonedds_lo.xml
+```
+
+建议把这三行放进一个脚本（例如 `~/g1_sim_env.sh`），每开一个新终端 `source` 一下即可。
+
+如果提示找不到 `rmw_cyclonedds_cpp`，请安装对应 ROS 版本的包，例如：
 
 ```bash
 sudo apt install ros-foxy-rmw-cyclonedds-cpp

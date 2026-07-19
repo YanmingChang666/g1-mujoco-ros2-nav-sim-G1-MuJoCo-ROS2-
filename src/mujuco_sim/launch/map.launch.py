@@ -10,7 +10,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 MODE = "sim"  # "sim": MuJoCo + keyboard + FAST-LIO; "real": real Mid360 topics + FAST-LIO.
-USE_SLAM_TOOLBOX_2D = False  # True: 2D /scan SLAM map; False: FAST-LIO PCD map.
+USE_SLAM_TOOLBOX_2D = True  # True: 2D /scan SLAM map; False: FAST-LIO PCD map.
 SIM_FAST_LIO_CONFIG_FILE = "mid360.yaml"
 REAL_FAST_LIO_CONFIG_FILE = "mid360_real.yaml"
 MAP_DELAY_SECONDS = "8.0"

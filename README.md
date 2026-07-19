@@ -153,7 +153,7 @@ Follow Unitree official documentation to configure Unitree MuJoCo, Unitree SDK2,
 Both `unitree_mujoco/simulate` and `g1_ctrl` link against Unitree SDK2 and expect it installed under `/opt/unitree_robotics`. Install it from this workspace, not from the upstream Unitree repository — this workspace copy contains extra `dds_wrapper` headers that `g1_ctrl` requires:
 
 ```bash
-cd ~/{your_workspace}/src/unitree_sdk2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_sdk2
 mkdir -p build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics -DBUILD_EXAMPLES=OFF
 make -j4
@@ -190,7 +190,7 @@ your clone is missing `src/unitree_sdk2/include/unitree/common/log/`. An earlier
 ```bash
 git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2 /tmp/unitree_sdk2_official
 cp -r /tmp/unitree_sdk2_official/include/unitree/common/log \
-      ~/{your_workspace}/src/unitree_sdk2/include/unitree/common/log
+      ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_sdk2/include/unitree/common/log
 ```
 
 This fix is verified on Ubuntu 22.04 + GCC 11.4: after restoring the headers, the SDK installs cleanly and both `unitree_mujoco` and `g1_ctrl` build and run.
@@ -234,7 +234,7 @@ link_libraries(
 Then rebuild:
 
 ```bash
-cd ~/{your_workspace}/src/unitree_mujoco/simulate
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_mujoco/simulate
 rm -rf build
 mkdir build
 cd build
@@ -261,7 +261,7 @@ sudo apt install libboost-program-options-dev libspdlog-dev libfmt-dev libeigen3
 ```
 
 ```bash
-cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_rl_mjlab/deploy/robots/g1
 mkdir -p build
 cd build
 cmake .. -DCMAKE_PREFIX_PATH=/opt/unitree_robotics
@@ -321,7 +321,7 @@ If you plan to use a real Mid360, or if you want to build the full workspace inc
 For ROS2 Foxy, build and install Livox-SDK2:
 
 ```bash
-cd ~/{your_workspace}/src/Livox-SDK2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/Livox-SDK2
 mkdir -p build
 cd build
 cmake ..
@@ -349,7 +349,7 @@ Packages installing interfaces must include
 The repository now ships `package.xml` (a copy of `package_ROS2.xml`) and the `.gitignore` rule has been removed. If your clone predates this fix, create the file manually:
 
 ```bash
-cd ~/{your_workspace}/src/livox_ros_driver2
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/livox_ros_driver2
 cp package_ROS2.xml package.xml
 ```
 
@@ -358,7 +358,7 @@ Do not run Livox's `build.sh` to fix this — it executes `rm -rf` on the worksp
 ROS2 Humble build:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/humble/setup.bash
 colcon build --packages-select livox_ros_driver2 \
   --cmake-args \
@@ -372,7 +372,7 @@ colcon build --packages-select livox_ros_driver2 \
 ROS2 Foxy build:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/foxy/setup.bash
 colcon build --packages-select livox_ros_driver2 \
   --cmake-args \
@@ -428,7 +428,7 @@ void map_save_callback(
 Build FAST-LIO:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 colcon build --packages-select fast_lio
 source install/setup.bash
@@ -442,7 +442,7 @@ If `ros2 pkg prefix fast_lio` prints a path, FAST-LIO is installed correctly.
 On a new machine, or after copying this workspace, clean old build outputs first:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 rm -rf build install log
 source /opt/ros/{your_ros_distro}/setup.bash
 colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
@@ -461,14 +461,15 @@ The workspace contains several packages that are not needed for the simulation p
 - `src/lidar_localization_ros2/`: experimental NDT localization, unused by all launch files. Fails with `Could not find ... "ndt_omp_ros2"`, a source-only package that would have to be cloned into `src/`.
 - `src/unitree_sdk2/` and `src/Livox-SDK2/`: already installed system-wide in the earlier steps; rebuilding them inside colcon is redundant.
 - `src/unitree_rl_mjlab/`: the RL training repository; the deployed `g1_ctrl` is built separately with CMake.
+- `src/unitree_mujoco/`: the simulator is built manually with CMake (see Build Unitree MuJoCo above) and launched from `simulate/build/`. Colcon would rebuild it without the MuJoCo SDK flags and fail with `glfw_adapter.h: No such file` / `cannot find -lmujoco`.
 
 To re-enable a package later (for example `src/unitree_ros2` for a real robot after building Unitree's `cyclonedds_ws`, or `lidar_localization_ros2` after cloning `ndt_omp_ros2`), delete its `COLCON_IGNORE` file. If your clone predates these markers, create them:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 touch src/unitree_ros2/COLCON_IGNORE src/unitree_sdk2/COLCON_IGNORE \
       src/Livox-SDK2/COLCON_IGNORE src/unitree_rl_mjlab/COLCON_IGNORE \
-      src/lidar_localization_ros2/COLCON_IGNORE
+      src/lidar_localization_ros2/COLCON_IGNORE src/unitree_mujoco/COLCON_IGNORE
 ```
 
 System (apt) dependencies of the remaining packages can be installed automatically with rosdep instead of hunting them one by one:
@@ -496,13 +497,13 @@ Add the `export ROSDISTRO_INDEX_URL=...` line to `~/.bashrc` so later `rosdep up
 The launch files no longer contain a hard-coded workspace path: `WS_SRC` is derived automatically from the `mujuco_sim` install prefix (`<ws>/install/mujuco_sim` → `<ws>/src`), so the workspace can live in any directory under any name. Only for nonstandard layouts (for example `--merge-install`) set an explicit override:
 
 ```bash
-export G1_WS_SRC=~/{your_workspace}/src
+export G1_WS_SRC=~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src
 ```
 
 If you edit any launch file, rebuild and source afterwards:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 colcon build --packages-select mujuco_sim
 source install/setup.bash
 ```
@@ -520,7 +521,7 @@ unset AMENT_PREFIX_PATH
 unset CMAKE_PREFIX_PATH
 unset COLCON_PREFIX_PATH
 source /opt/ros/{your_ros_distro}/setup.bash
-source ~/{your_workspace}/install/setup.bash
+source ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/install/setup.bash
 ```
 
 Also check `~/.bashrc` and avoid automatically sourcing an old workspace.
@@ -530,7 +531,7 @@ Also check `~/.bashrc` and avoid automatically sourcing an old workspace.
 Keyboard control mode:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim g1_nav_sim.launch.py input:=keyboard
@@ -561,20 +562,41 @@ MODE = "sim"
 USE_SLAM_TOOLBOX_2D = True
 ```
 
+After changing this flag, rebuild `mujuco_sim` so the installed copy of the launch file is updated (not needed if you built with `--symlink-install`):
+
+```bash
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
+colcon build --packages-select mujuco_sim
+source install/setup.bash
+```
+
 Start mapping:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim map.launch.py
 ```
 
-Drive the robot with the keyboard controller, then save the 2D map:
+Drive the robot with the keyboard controller until the map in RViz covers the whole environment, then save the 2D map.
+
+**Important:** `map.launch.py` moves the whole simulation onto a private DDS network (`ROS_DOMAIN_ID=1`, CycloneDDS restricted to loopback). A freshly opened terminal is on the default network (domain 0, Fast DDS) and cannot see `/map` — `map_saver_cli` then fails with `Failed to spin map subscription`. Set up the same environment in the save terminal first:
 
 ```bash
-ros2 run nav2_map_server map_saver_cli -f ~/{your_workspace}/src/maps/new_2d_map
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI=file://$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/mujuco_sim/config/cyclonedds_lo.xml
 ```
+
+Verify the map topic is visible, then save:
+
+```bash
+ros2 topic list | grep map   # should show /map
+ros2 run nav2_map_server map_saver_cli -f ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/maps/new_2d_map
+```
+
+This writes `new_2d_map.pgm` and `new_2d_map.yaml`; existing files with the same name are overwritten.
 
 ## FAST-LIO PCD Mapping
 
@@ -585,10 +607,12 @@ MODE = "sim"
 USE_SLAM_TOOLBOX_2D = False
 ```
 
+After changing this flag, rebuild `mujuco_sim` as described in the 2D mapping section above.
+
 Start FAST-LIO mapping:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim map.launch.py
@@ -599,6 +623,8 @@ Drive the robot around the environment. Do not rely on `Ctrl+C` to save the PCD.
 ```bash
 ros2 service call /map_save std_srvs/srv/Trigger {}
 ```
+
+Like `map_saver_cli` in the 2D mapping section, this service call must run in a terminal that has joined the simulation's DDS network — set the same three environment variables (`ROS_DOMAIN_ID`, `RMW_IMPLEMENTATION`, `CYCLONEDDS_URI`) first, otherwise the service is not visible.
 
 The simulated FAST-LIO PCD output path is configured in:
 
@@ -627,13 +653,27 @@ src/maps/vln_navigation_room.yaml
 Start navigation:
 
 ```bash
-cd ~/{your_workspace}
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
 source /opt/ros/{your_ros_distro}/setup.bash
 source install/setup.bash
 ros2 launch mujuco_sim nav.launch.py
 ```
 
+To use a different map without editing the launch file, pass it as an argument:
+
+```bash
+ros2 launch mujuco_sim nav.launch.py map:=$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/maps/new_2d_map.yaml
+```
+
 Send a `2D Goal Pose` in RViz. Nav2 publishes `/cmd_vel`, and `g1_ctrl --cmd_vel` receives it to drive the G1 in MuJoCo.
+
+How localization works:
+
+- FAST-LIO tightly fuses the Mid360 point cloud with the IMU (`/imu/data`) and provides high-rate local odometry (`odom -> base_link`).
+- AMCL matches `/scan` against the static map and continuously corrects `map -> odom`, so FAST-LIO drift does not accumulate in the map frame.
+- RViz (`nav.rviz`) shows the global plan (green), the DWB local plan (orange), both costmaps, and the AMCL particle cloud.
+
+If the robot ever appears misplaced on the map, re-seed AMCL with the `2D Pose Estimate` tool in RViz.
 
 Example Nav2 simulation results:
 
@@ -652,7 +692,7 @@ For a real G1 robot:
 5. Run `g1_ctrl` on the real robot network interface, for example:
 
 ```bash
-cd ~/{your_workspace}/src/unitree_rl_mjlab/deploy/robots/g1/build
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_rl_mjlab/deploy/robots/g1/build
 ./g1_ctrl --network=enp5s0
 ```
 
@@ -672,7 +712,17 @@ Simulation defaults to `ROS_DOMAIN_ID=1` and uses CycloneDDS loopback config:
 src/mujuco_sim/config/cyclonedds_lo.xml
 ```
 
-The launch files set these environment variables automatically. If `rmw_cyclonedds_cpp` is missing, install the package for your ROS distro:
+The launch files set these environment variables automatically, but only for the nodes they start. Any terminal you open manually to interact with the simulation (`ros2 topic`, `ros2 service`, `map_saver_cli`, ...) must set the same environment first, otherwise it sits on the default DDS network (domain 0, Fast DDS) and sees no simulation topics:
+
+```bash
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI=file://$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/mujuco_sim/config/cyclonedds_lo.xml
+```
+
+Tip: put these three lines in a small script (e.g. `~/g1_sim_env.sh`) and `source` it in every new terminal.
+
+If `rmw_cyclonedds_cpp` is missing, install the package for your ROS distro:
 
 ```bash
 sudo apt install ros-foxy-rmw-cyclonedds-cpp

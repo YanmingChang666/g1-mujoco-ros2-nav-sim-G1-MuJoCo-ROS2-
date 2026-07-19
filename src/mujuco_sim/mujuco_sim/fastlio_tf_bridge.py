@@ -17,6 +17,10 @@ class FastlioTfBridge(Node):
         self.declare_parameter("odom_frame", "odom")
         self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("publish_map_to_odom", True)
+        # FAST-LIO emits ~1 pose per LiDAR scan (10 Hz). Nav2's controller and
+        # costmaps need a fresher odom->base_link than that, so the last pose
+        # is re-broadcast with a current stamp at this rate. 0 disables.
+        self.declare_parameter("tf_rate", 50.0)
 
         self.odom_frame = self.get_parameter("odom_frame").value
         self.map_frame = self.get_parameter("map_frame").value
@@ -43,33 +47,50 @@ class FastlioTfBridge(Node):
             map_to_odom.child_frame_id = self.odom_frame
             map_to_odom.transform.rotation.w = 1.0
             self.static_tf_pub.sendTransform(map_to_odom)
+
+        self._last_pose = None
+        self._last_twist = None
+        tf_rate = float(self.get_parameter("tf_rate").value)
+        if tf_rate > 0.0:
+            self.create_timer(1.0 / tf_rate, self._rebroadcast_timer)
+
         self.get_logger().info(
-            "Bridging FAST-LIO /Odometry to /odom and map->odom->base_link TF"
+            "Bridging FAST-LIO /Odometry to /odom and odom->base_link TF"
         )
 
     def _odom_callback(self, msg):
-        stamp = msg.header.stamp
+        self._last_pose = msg.pose
+        self._last_twist = msg.twist
+        self._publish(msg.header.stamp)
+
+    def _rebroadcast_timer(self):
+        if self._last_pose is None:
+            return
+        self._publish(self.get_clock().now().to_msg())
+
+    def _publish(self, stamp):
+        pose = self._last_pose
 
         odom_to_base = TransformStamped()
         odom_to_base.header.stamp = stamp
         odom_to_base.header.frame_id = self.odom_frame
         odom_to_base.child_frame_id = self.base_frame
-        odom_to_base.transform.translation.x = msg.pose.pose.position.x
-        odom_to_base.transform.translation.y = msg.pose.pose.position.y
+        odom_to_base.transform.translation.x = pose.pose.position.x
+        odom_to_base.transform.translation.y = pose.pose.position.y
         # Nav2's base_link is a planar navigation frame. FAST-LIO estimates a
         # 3D body pose, but using that z here would double-count sensor height
         # with base_link->livox_frame and make the simulated Mid360 cloud float.
         odom_to_base.transform.translation.z = 0.0
-        odom_to_base.transform.rotation = msg.pose.pose.orientation
+        odom_to_base.transform.rotation = pose.pose.orientation
         self.tf_pub.sendTransform(odom_to_base)
 
         out = Odometry()
         out.header.stamp = stamp
         out.header.frame_id = self.odom_frame
         out.child_frame_id = self.base_frame
-        out.pose = msg.pose
+        out.pose = pose
         out.pose.pose.position.z = 0.0
-        out.twist = msg.twist
+        out.twist = self._last_twist
         self.odom_pub.publish(out)
 
 
