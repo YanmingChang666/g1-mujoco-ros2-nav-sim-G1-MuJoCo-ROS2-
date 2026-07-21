@@ -19,6 +19,7 @@ It is strongly recommended to clone and use this complete workspace directly ins
 - Build 2D maps with `slam_toolbox`.
 - Run 3D PCD mapping and localization experiments with `FAST_LIO_ROS2`.
 - Run Nav2 navigation with saved 2D `.yaml/.pgm` maps.
+- Switch between multiple MuJoCo scenes, including a VLN apartment and a ping-pong table room (`tt_room_29dof.xml`).
 
 ## Data Flow
 
@@ -82,7 +83,7 @@ If you do not clone this complete workspace and instead download upstream reposi
 - `src/unitree_mujoco/simulate/config.yaml`
   - Selects the current simulation scene.
 - `src/unitree_mujoco/unitree_robots/g1/*.xml`
-  - G1 navigation scenes, VLN rooms, LiDAR site, and related MuJoCo XML changes.
+  - G1 navigation scenes, VLN rooms, ping-pong room, LiDAR site, and related MuJoCo XML changes.
 - `src/unitree_mujoco/example/COLCON_IGNORE`
   - Avoids duplicate `stand_go2` package names during colcon builds.
 - `src/unitree_rl_mjlab/deploy/robots/g1/main.cpp`
@@ -552,6 +553,33 @@ ros2 topic hz /livox/lidar
 ros2 topic hz /imu/data
 ros2 run tf2_ros tf2_echo base_link livox_frame
 ```
+
+## Simulation Scenes
+
+Navigation scenes for the G1 live in `src/unitree_mujoco/unitree_robots/g1/`:
+
+- `navigation_room_29dof.xml`: simple navigation room.
+- `vln_apartment_29dof.xml`: VLN apartment (previous default).
+- `tt_room_29dof.xml`: ping-pong room (current default). An 11 m x 8 m room with the same outer walls as the VLN apartment, containing an ITTF-standard table (2.74 m x 1.525 m, top at 0.76 m) with net. The G1 spawns at the origin, 0.63 m behind the near baseline.
+
+The active scene is selected in two places, which must point at the same file:
+
+1. Main simulator: `robot_scene` in `src/unitree_mujoco/simulate/config.yaml`. Read at startup, no rebuild needed.
+2. Camera bridge: the `camera_model_path` argument of `g1_nav_sim.launch.py`. Either override it at launch time:
+
+```bash
+ros2 launch mujuco_sim g1_nav_sim.launch.py \
+  camera_model_path:=$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_mujoco/unitree_robots/g1/vln_apartment_29dof.xml
+```
+
+or edit its default in `src/mujuco_sim/launch/g1_nav_sim.launch.py` and rebuild so the installed copy picks up the change (not needed if the workspace was built with `--symlink-install`):
+
+```bash
+colcon build --packages-select mujuco_sim
+source install/setup.bash
+```
+
+When switching scenes, also switch the Nav2 2D map (`map:=` argument of `nav.launch.py`) to a map built in that scene, otherwise AMCL cannot localize.
 
 ## 2D Mapping With slam_toolbox
 

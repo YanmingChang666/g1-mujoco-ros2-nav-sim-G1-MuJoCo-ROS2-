@@ -19,6 +19,7 @@
 - 支持 `slam_toolbox` 进行 2D 建图。
 - 支持 `FAST_LIO_ROS2` 进行 3D PCD 建图和定位实验。
 - 支持 Nav2 读取保存好的 2D `.yaml/.pgm` 地图进行导航。
+- 支持切换多个 MuJoCo 仿真场景，包括 VLN 公寓和乒乓球房间（`tt_room_29dof.xml`）。
 
 ## 总体数据流
 
@@ -82,7 +83,7 @@ src/maps/                    # 2D 地图和保存的 PCD 地图
 - `src/unitree_mujoco/simulate/config.yaml`
   - 配置当前仿真场景。
 - `src/unitree_mujoco/unitree_robots/g1/*.xml`
-  - G1 导航场景、VLN 房间、雷达 site 等 MuJoCo XML。
+  - G1 导航场景、VLN 房间、乒乓球房间、雷达 site 等 MuJoCo XML。
 - `src/unitree_mujoco/example/COLCON_IGNORE`
   - 避免 `stand_go2` 重名导致 colcon 编译失败。
 - `src/unitree_rl_mjlab/deploy/robots/g1/main.cpp`
@@ -552,6 +553,33 @@ ros2 topic hz /livox/lidar
 ros2 topic hz /imu/data
 ros2 run tf2_ros tf2_echo base_link livox_frame
 ```
+
+## 仿真场景
+
+G1 的导航场景位于 `src/unitree_mujoco/unitree_robots/g1/`：
+
+- `navigation_room_29dof.xml`：简单导航房间。
+- `vln_apartment_29dof.xml`：VLN 公寓（之前的默认场景）。
+- `tt_room_29dof.xml`：乒乓球房间（当前默认场景）。11 m x 8 m 房间，外墙与 VLN 公寓一致，内含一张 ITTF 标准乒乓球桌（2.74 m x 1.525 m，桌面高 0.76 m）和球网。G1 出生在原点，位于近端底线后方 0.63 m 处。
+
+当前场景需要在两处保持一致：
+
+1. 主仿真器：`src/unitree_mujoco/simulate/config.yaml` 中的 `robot_scene`，启动时读取，无需重新编译。
+2. 相机桥接：`g1_nav_sim.launch.py` 的 `camera_model_path` 参数。可以在启动时覆盖：
+
+```bash
+ros2 launch mujuco_sim g1_nav_sim.launch.py \
+  camera_model_path:=$HOME/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-/src/unitree_mujoco/unitree_robots/g1/vln_apartment_29dof.xml
+```
+
+也可以直接修改 `src/mujuco_sim/launch/g1_nav_sim.launch.py` 中的默认值，修改后需要重新编译使 install 目录下的副本生效（使用 `--symlink-install` 编译的工作空间可跳过）：
+
+```bash
+colcon build --packages-select mujuco_sim
+source install/setup.bash
+```
+
+切换场景时，Nav2 的 2D 地图（`nav.launch.py` 的 `map:=` 参数）也要换成在该场景中建立的地图，否则 AMCL 无法定位。
 
 ## 使用 slam_toolbox 进行 2D 建图
 
