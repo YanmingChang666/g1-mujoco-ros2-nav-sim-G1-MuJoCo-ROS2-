@@ -159,9 +159,11 @@ local_costmap:
           min_obstacle_height: 0.15
           max_obstacle_height: 1.8
           raytrace_max_range: 8.0
-          raytrace_min_range: 0.3
+          # 0.5 m matches FAST-LIO's blind radius and keeps returns from the
+          # robot's own arms/legs out of the costmap.
+          raytrace_min_range: 0.5
           obstacle_max_range: 6.0
-          obstacle_min_range: 0.3
+          obstacle_min_range: 0.5
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 3.0
@@ -208,9 +210,11 @@ global_costmap:
           min_obstacle_height: 0.15
           max_obstacle_height: 1.8
           raytrace_max_range: 8.0
-          raytrace_min_range: 0.3
+          # 0.5 m matches FAST-LIO's blind radius and keeps returns from the
+          # robot's own arms/legs out of the costmap.
+          raytrace_min_range: 0.5
           obstacle_max_range: 6.0
-          obstacle_min_range: 0.3
+          obstacle_min_range: 0.5
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 3.0

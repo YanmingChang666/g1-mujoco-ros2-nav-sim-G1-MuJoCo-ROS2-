@@ -304,7 +304,9 @@ void ShmNavBridge::UpdateRanges(const mjModel *model, const mjData *data)
     const mjtNum dist = mj_ray(model, data, lidar_pos, ray_dir, nullptr, 1,
                                lidar_body_exclude_id_, &geom_id);
 
-    if (dist < range_min_ || dist < 0.0)
+    // mj_ray's bodyexclude skips a single body only; hits on the rest of
+    // the robot (arms, legs) would otherwise become phantom obstacles.
+    if (IsSelfHit(model, geom_id) || dist < range_min_ || dist < 0.0)
     {
       shm_->ranges[i] = std::numeric_limits<float>::infinity();
     }
@@ -314,6 +316,18 @@ void ShmNavBridge::UpdateRanges(const mjModel *model, const mjData *data)
     }
   }
   shm_->num_ranges = num_lidar_rays_;
+}
+
+bool ShmNavBridge::IsSelfHit(const mjModel *model, int geom_id) const
+{
+  if (geom_id < 0 || base_body_id_ < 0)
+  {
+    return false;
+  }
+  // Any geom whose kinematic tree root matches the robot's floating base
+  // belongs to the robot itself (pelvis, legs, arms, head, ...).
+  const int body_id = model->geom_bodyid[geom_id];
+  return model->body_rootid[body_id] == model->body_rootid[base_body_id_];
 }
 
 bool ShmNavBridge::LoadMid360Pattern()
@@ -417,7 +431,8 @@ void ShmNavBridge::UpdateMid360Cloud(const mjModel *model, const mjData *data, d
     int geom_id = -1;
     const mjtNum dist = mj_ray(model, data, lidar_pos, world_dir, nullptr, 1,
                                lidar_body_exclude_id_, &geom_id);
-    if (dist < range_min_ || dist < 0.0 || dist > cloud_range_max_)
+    if (IsSelfHit(model, geom_id) || dist < range_min_ || dist < 0.0 ||
+        dist > cloud_range_max_)
     {
       continue;
     }

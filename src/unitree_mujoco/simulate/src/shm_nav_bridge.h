@@ -48,6 +48,7 @@ private:
   void UpdateRanges(const mjModel *model, const mjData *data);
   void UpdateMid360Cloud(const mjModel *model, const mjData *data, double base_yaw);
   bool LoadMid360Pattern();
+  bool IsSelfHit(const mjModel *model, int geom_id) const;
 
   int shm_fd_ = -1;
   UnitreeMujocoNavShmData *shm_ = nullptr;

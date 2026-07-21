@@ -705,6 +705,23 @@ ros2 launch mujuco_sim nav.launch.py map:=$HOME/Python_project/G1_ROS/g1-mujoco-
 
 如果机器人在地图上的位置明显不对，可以用 RViz 的 `2D Pose Estimate` 工具重新给 AMCL 设定初始位姿。
 
+## 导航问题排查：录制并分析 bag
+
+如果导航出现异常（幽灵障碍物、定位不准、路径震荡等），可以在复现问题的同时录制一段诊断 bag：
+
+```bash
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
+./src/mujuco_sim/scripts/record_nav_bag.sh 30
+```
+
+脚本会自动加入仿真的 DDS 网络，录制 30 秒的激光点云、scan、IMU、FAST-LIO 里程计、TF、AMCL、路径和代价地图数据到 `bags/` 目录。然后分析：
+
+```bash
+python3 src/mujuco_sim/scripts/analyze_nav_bag.py bags/nav_debug_<时间戳>
+```
+
+分析脚本会输出：激光自打点数量（雷达扫到自己手臂/腿）、点云高度分布（地面点是否漏进代价地图障碍物高度带）、FAST-LIO 横滚/俯仰晃动幅度、全局代价地图占用格随时间的增长，并对常见故障模式给出结论。注意 `.gitignore` 默认排除 bag 文件，如需分享请用 `git add -f` 或打包 zip。
+
 Nav2 联合仿真效果示例：
 
 ![MuJoCo Mid360 点云与 Nav2 地图显示](images/mujoco_3Dcloud.png)

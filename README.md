@@ -705,6 +705,23 @@ Obstacle avoidance uses both sensors. The 2D `/scan` is cast horizontally from t
 
 If the robot ever appears misplaced on the map, re-seed AMCL with the `2D Pose Estimate` tool in RViz.
 
+## Navigation Debugging: Record and Analyze a Bag
+
+If navigation misbehaves (phantom obstacles, bad localization, oscillation), record a short diagnostic bag while reproducing the problem:
+
+```bash
+cd ~/Python_project/G1_ROS/g1-mujoco-ros2-nav-sim-G1-MuJoCo-ROS2-
+./src/mujuco_sim/scripts/record_nav_bag.sh 30
+```
+
+The script joins the simulation's DDS network automatically and records the lidar cloud, scan, IMU, FAST-LIO odometry, TF, AMCL, plans, and costmaps for 30 seconds into `bags/`. Then analyze it:
+
+```bash
+python3 src/mujuco_sim/scripts/analyze_nav_bag.py bags/nav_debug_<timestamp>
+```
+
+The analyzer reports lidar self-hit counts (robot seeing its own arms/legs), the height distribution of cloud points (ground leakage into the costmap obstacle band), FAST-LIO roll/pitch sway, and global-costmap growth over time, with verdicts for the common failure modes. Note `.gitignore` excludes bag files; use `git add -f` or a zip if you need to share one.
+
 Example Nav2 simulation results:
 
 ![MuJoCo Mid360 point cloud with Nav2 map](images/mujoco_3Dcloud.png)
