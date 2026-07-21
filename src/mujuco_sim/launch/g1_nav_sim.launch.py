@@ -84,7 +84,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "camera_model_path",
                 default_value=os.path.join(
-                    MUJOCO_ROOT, "unitree_robots", "g1", "vln_apartment_29dof.xml"
+                    MUJOCO_ROOT, "unitree_robots", "g1", "tt_room_29dof.xml"
                 ),
             ),
             SetEnvironmentVariable("ROS_DOMAIN_ID", domain),
