@@ -701,6 +701,8 @@ How localization works:
 - AMCL matches `/scan` against the static map and continuously corrects `map -> odom`, so FAST-LIO drift does not accumulate in the map frame.
 - RViz (`nav.rviz`) shows the global plan (green), the DWB local plan (orange), both costmaps, and the AMCL particle cloud.
 
+Obstacle avoidance uses both sensors. The 2D `/scan` is cast horizontally from the head-mounted lidar (~1.2 m above ground), so it passes over low furniture — the ping-pong table (top at 0.76 m) never appears in the SLAM map at all. Both costmaps therefore also consume the Mid360 3D cloud (`/livox/lidar`) with a 0.15–1.8 m height filter: low obstacles are marked at runtime and the planner routes around them even though the static map is empty there.
+
 If the robot ever appears misplaced on the map, re-seed AMCL with the `2D Pose Estimate` tool in RViz.
 
 Example Nav2 simulation results:

@@ -124,11 +124,23 @@ local_costmap:
       height: 4
       resolution: 0.05
       robot_radius: 0.28
-      plugins: ["obstacle_layer", "inflation_layer"]
-      obstacle_layer:
-        plugin: nav2_costmap_2d::ObstacleLayer
+      # The 2D /scan is cast from the head (~1.2 m) and passes OVER low
+      # furniture such as the ping-pong table (top at 0.76 m). The voxel
+      # layer adds the Mid360 3D cloud so such obstacles are marked.
+      # Heights are near-world values: the sensor TF carries the site's
+      # absolute z while base_link is flattened to z=0, so ground ~ 0.
+      plugins: ["voxel_layer", "inflation_layer"]
+      voxel_layer:
+        plugin: nav2_costmap_2d::VoxelLayer
         enabled: true
-        observation_sources: scan
+        publish_voxel_map: false
+        origin_z: 0.0
+        z_resolution: 0.2
+        z_voxels: 10
+        max_obstacle_height: 2.0
+        unknown_threshold: 15
+        mark_threshold: 0
+        observation_sources: scan cloud
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -139,6 +151,17 @@ local_costmap:
           raytrace_min_range: 0.1
           obstacle_max_range: 6.0
           obstacle_min_range: 0.1
+        cloud:
+          topic: /livox/lidar
+          data_type: PointCloud2
+          marking: true
+          clearing: true
+          min_obstacle_height: 0.15
+          max_obstacle_height: 1.8
+          raytrace_max_range: 8.0
+          raytrace_min_range: 0.3
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.3
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 3.0
@@ -163,7 +186,10 @@ global_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: scan
+        # cloud: same reasoning as the local costmap — lets the global
+        # planner route around obstacles the 2D scan cannot see (e.g.
+        # the ping-pong table) once the Mid360 has observed them.
+        observation_sources: scan cloud
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -174,6 +200,17 @@ global_costmap:
           raytrace_min_range: 0.1
           obstacle_max_range: 6.0
           obstacle_min_range: 0.1
+        cloud:
+          topic: /livox/lidar
+          data_type: PointCloud2
+          marking: true
+          clearing: true
+          min_obstacle_height: 0.15
+          max_obstacle_height: 1.8
+          raytrace_max_range: 8.0
+          raytrace_min_range: 0.3
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.3
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 3.0

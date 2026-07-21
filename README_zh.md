@@ -701,6 +701,8 @@ ros2 launch mujuco_sim nav.launch.py map:=$HOME/Python_project/G1_ROS/g1-mujoco-
 - AMCL 用 `/scan` 与静态地图做匹配，持续修正 `map -> odom`，因此 FAST-LIO 的漂移不会在 map 坐标系中累积。
 - RViz（`nav.rviz`）会显示全局路径（绿色）、DWB 局部路径（橙色）、全局/局部代价地图和 AMCL 粒子云。
 
+避障同时使用两种传感器。2D `/scan` 从头部雷达（离地约 1.2 m）水平发射，会直接越过低矮家具——乒乓球桌（桌面高 0.76 m）根本不会出现在 SLAM 地图里。因此两个代价地图还额外订阅 Mid360 三维点云（`/livox/lidar`），并用 0.15–1.8 m 的高度过滤：低矮障碍物在运行时被实时标记，即使静态地图中是空白，规划器也会绕开它们。
+
 如果机器人在地图上的位置明显不对，可以用 RViz 的 `2D Pose Estimate` 工具重新给 AMCL 设定初始位姿。
 
 Nav2 联合仿真效果示例：
